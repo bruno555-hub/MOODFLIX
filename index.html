@@ -1,1 +1,201 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOODFLIX | ISB All-In-One Cinema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
+        [x-cloak] { display: none !important; }
+        body { background: #050505; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        
+        /* SHINING & GLOW EFFECT */
+        .shining-card { position: relative; overflow: hidden; box-shadow: 0 0 10px rgba(229, 9, 20, 0.1); transition: 0.5s; }
+        .shining-card::before {
+            content: ""; position: absolute; top: -50%; left: -100%; width: 50%; height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+            transform: rotate(45deg); animation: shine 4s infinite;
+        }
+        @keyframes shine { 0% { left: -100%; } 100% { left: 150%; } }
+
+        /* HANGING WHATSAPP */
+        .hanging-wa { position: relative; padding-top: 15px; }
+        .hanging-wa::before, .hanging-wa::after { content: ""; position: absolute; top: 0; width: 1px; height: 15px; background: #25D366; }
+        .hanging-wa::before { left: 8px; } .hanging-wa::after { right: 8px; }
+        .wa-btn { background: #25D366; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: swing 3s ease-in-out infinite; transform-origin: top center; }
+        @keyframes swing { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+
+        .row-container::-webkit-scrollbar { display: none; }
+        .netflix-gradient { background: linear-gradient(to right, #050505 10%, transparent 100%); }
+    </style>
+</head>
+<body x-data="moodFlixApp()" x-init="init()">
+
+    <nav class="fixed top-0 w-full z-[100] py-4 px-6 md:px-16 flex justify-between items-center bg-black/90 backdrop-blur-xl border-b border-white/5">
+        <a href="#" @click="selectedMovie = null" class="text-3xl font-black text-red-600 tracking-tighter uppercase italic">MOOD<span class="text-white">FLIX</span></a>
+        
+        <div class="flex items-center gap-8">
+            <input type="text" x-model="searchQuery" @input.debounce.500ms="searchMovies()" placeholder="Search..." class="bg-white/5 border border-white/10 w-40 md:w-64 py-2 px-6 rounded-full text-xs outline-none focus:border-red-600 transition-all">
+            
+            <div class="hanging-wa">
+                <a href="https://wa.me/250793408967" target="_blank" class="wa-btn shadow-lg shadow-green-500/40">
+                    <i class="fab fa-whatsapp text-white text-xl"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <template x-if="!selectedMovie">
+        <main>
+            <header class="relative h-screen w-full">
+                <template x-for="(m, index) in trendingMovies.slice(0, 5)" :key="m.id">
+                    <div x-show="activeSlide === index" x-transition.opacity.duration.1000ms class="absolute inset-0">
+                        <img :src="'https://image.tmdb.org/t/p/original' + m.backdrop_path" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 netflix-gradient flex items-center px-6 md:px-16">
+                            <div class="max-w-3xl">
+                                <h1 class="text-5xl md:text-8xl font-black mb-4 uppercase italic tracking-tighter" x-text="m.title"></h1>
+                                <p class="text-white/80 font-bold mb-4 uppercase text-xs" x-text="'Released: ' + m.release_date"></p>
+                                <button @click="openDetails(m)" class="bg-red-600 text-white px-12 py-4 rounded-full font-black uppercase text-xs hover:bg-white hover:text-black transition-all">Watch Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </header>
+
+            <div class="mt-[-120px] relative z-20 pb-40 space-y-16">
+                <template x-for="genre in genreList" :key="genre.id">
+                    <div class="pl-6 md:pl-16">
+                        <h2 class="text-2xl font-black mb-6 text-white uppercase italic border-l-4 border-red-600 pl-4 tracking-widest" x-text="genre.name"></h2>
+                        <div class="flex gap-5 overflow-x-auto row-container" x-init="fetchGenreMovies(genre.id, genre.name)">
+                            <template x-for="movie in genreData[genre.name]" :key="movie.id">
+                                <div class="movie-card flex-none w-[200px] shining-card group cursor-pointer" @click="openDetails(movie)">
+                                    <div class="relative">
+                                        <img :src="'https://image.tmdb.org/t/p/w400' + movie.poster_path" class="rounded-xl">
+                                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-xl">
+                                            <div class="bg-red-600 text-white px-4 py-2 rounded-full font-black text-[10px] uppercase">Watch Now</div>
+                                        </div>
+                                    </div>
+                                    <p class="mt-3 text-[10px] font-black uppercase truncate text-white/50 px-2" x-text="movie.title"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </main>
+    </template>
+
+    <template x-if="selectedMovie">
+        <div class="min-h-screen bg-[#050505] animate-fade-in">
+            <div class="relative h-[65vh]">
+                <img :src="'https://image.tmdb.org/t/p/original' + selectedMovie.backdrop_path" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/40 to-transparent"></div>
+                <div class="absolute inset-0 flex items-end px-6 md:px-16 pb-12">
+                    <div class="max-w-4xl">
+                        <button @click="selectedMovie = null" class="mb-8 bg-red-600 text-white px-8 py-3 rounded-full font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-105 transition">
+                            <i class="fas fa-arrow-left mr-2"></i> BACK TO HOME
+                        </button>
+                        <h1 class="text-6xl md:text-8xl font-black mb-4 uppercase italic tracking-tighter" x-text="selectedMovie.title"></h1>
+                        <p class="text-red-500 font-black mb-6 uppercase text-sm" x-text="'OFFICIAL RELEASE: ' + selectedMovie.release_date"></p>
+                        <p class="text-white/70 text-lg leading-relaxed max-w-2xl" x-text="selectedMovie.overview"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 md:px-16 py-20">
+                <div class="relative w-full max-w-6xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/5 font-black text-5xl uppercase pointer-events-none z-10 tracking-[15px]">ISB</div>
+                    <iframe :src="'https://vidsrc.icu/embed/movie/' + selectedMovie.id" class="w-full h-full" allowfullscreen allow="autoplay"></iframe>
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto px-6 pb-40">
+                <h3 class="text-3xl font-black uppercase mb-10 border-l-8 border-red-600 pl-6 italic">Audience Reviews</h3>
+                <div class="space-y-4 mb-12">
+                    <input type="text" x-model="newCommentName" placeholder="Your Name" class="w-full bg-white/5 border border-white/10 p-5 rounded-xl outline-none focus:border-red-600 transition">
+                    <textarea x-model="newCommentText" placeholder="Write a review..." class="w-full bg-white/5 border border-white/10 p-5 rounded-xl h-32 outline-none focus:border-red-600 transition"></textarea>
+                    <button @click="addComment()" class="bg-red-600 px-12 py-4 rounded-full font-black uppercase text-xs">Post Review</button>
+                </div>
+                <div class="space-y-6">
+                    <template x-for="comment in comments.filter(c => c.movieId === selectedMovie.id)" :key="comment.id">
+                        <div class="bg-white/5 p-8 rounded-2xl border border-white/5">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center font-black" x-text="comment.name[0]"></div>
+                                <p class="font-black uppercase tracking-widest text-sm" x-text="comment.name"></p>
+                            </div>
+                            <p class="text-white/60 italic" x-text="comment.text"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <footer class="py-20 px-6 border-t border-white/5 bg-black text-center md:text-left">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-20">
+            <div>
+                <h4 class="text-red-600 font-black text-3xl mb-6 italic">MOODFLIX</h4>
+                <p class="text-white/20 text-[10px] font-bold uppercase tracking-[0.4em]">Bruno Shema (ISB) &bull; Premium Cinema Engine &bull; 2025</p>
+            </div>
+            <div class="space-y-4">
+                <h4 class="text-white font-black text-xs uppercase mb-6 tracking-widest">Contact ISB</h4>
+                <p class="text-white/40 text-xs font-black">+250 793 408 967</p>
+                <p class="text-white/40 text-xs font-black italic">shemabruno98@gmail.com</p>
+            </div>
+            <div class="flex justify-center md:justify-start gap-8">
+                <a href="https://wa.me/250793408967" class="text-white/20 hover:text-green-500 text-4xl transition"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://www.facebook.com/profile.php?id=100050118310189" class="text-white/20 hover:text-blue-600 text-4xl transition"><i class="fab fa-facebook"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function moodFlixApp() {
+            return {
+                apiKey: 'bea98ba7f32df298de59174a7d56a818',
+                trendingMovies: [], genreData: {}, activeSlide: 0, 
+                selectedMovie: null, searchQuery: '',
+                newCommentName: '', newCommentText: '', comments: [],
+                genreList: [
+                    { id: '28', name: 'Action Masterpieces' },
+                    { id: '27', name: 'Horror Room' },
+                    { id: '16', name: 'Animation Universe' },
+                    { id: '878', name: 'Sci-Fi Future' }
+                ],
+                init() { 
+                    this.fetchTrending();
+                    setInterval(() => { if(!this.selectedMovie) this.activeSlide = (this.activeSlide + 1) % 5; }, 6000);
+                },
+                async fetchTrending() {
+                    const res = await fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${this.apiKey}`);
+                    const data = await res.json(); this.trendingMovies = data.results;
+                },
+                async fetchGenreMovies(id, name) {
+                    const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${this.apiKey}&with_genres=${id}`);
+                    const data = await res.json(); this.genreData[name] = data.results;
+                },
+                async searchMovies() {
+                    if(this.searchQuery.length < 2) return;
+                    const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(this.searchQuery)}`);
+                    const data = await res.json(); this.genreData['Action Masterpieces'] = data.results;
+                },
+                openDetails(movie) {
+                    this.selectedMovie = movie; window.scrollTo({top: 0, behavior: 'smooth'});
+                },
+                addComment() {
+                    if(!this.newCommentName || !this.newCommentText) return;
+                    this.comments.unshift({
+                        id: Date.now(), movieId: this.selectedMovie.id,
+                        name: this.newCommentName, text: this.newCommentText
+                    });
+                    this.newCommentName = ''; this.newCommentText = '';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
