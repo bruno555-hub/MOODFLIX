@@ -1,6 +1,5 @@
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" x-cloak>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,75 +11,110 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
         [x-cloak] { display: none !important; }
         body { background: #050505; color: #ffffff; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
-        
+
         /* SHINING & GLOW EFFECT */
-        .shining-card { position: relative; overflow: hidden; box-shadow: 0 0 10px rgba(229, 9, 20, 0.1); transition: 0.5s; }
+        .shining-card { position: relative; overflow: hidden; box-shadow: 0 0 10px rgba(229, 9, 20, 0.08); transition: 0.5s; }
         .shining-card::before {
             content: ""; position: absolute; top: -50%; left: -100%; width: 50%; height: 200%;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.15), transparent);
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
             transform: rotate(45deg); animation: shine 4s infinite;
         }
         @keyframes shine { 0% { left: -100%; } 100% { left: 150%; } }
 
-        /* HANGING WHATSAPP */
+        /* HANGING WHATSAPP (nav variant) */
         .hanging-wa { position: relative; padding-top: 15px; }
         .hanging-wa::before, .hanging-wa::after { content: ""; position: absolute; top: 0; width: 1px; height: 15px; background: #25D366; }
         .hanging-wa::before { left: 8px; } .hanging-wa::after { right: 8px; }
-        .wa-btn { background: #25D366; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: swing 3s ease-in-out infinite; transform-origin: top center; }
+        .wa-btn { background: #25D366; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: swing 3s ease-in-out infinite; }
         @keyframes swing { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
 
         .row-container::-webkit-scrollbar { display: none; }
+        .row-container { -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+        .row-item { scroll-snap-align: start; }
+
         .netflix-gradient { background: linear-gradient(to right, #050505 10%, transparent 100%); }
+
+        /* responsive small fixes */
+        @media (max-width: 640px) {
+            .shining-card::before { display: none; } /* reduce paint on small devices */
+        }
     </style>
 </head>
-<body x-data="moodFlixApp()" x-init="init()">
+<body x-data="moodFlixApp()" x-init="init()" class="antialiased">
 
-    <nav class="fixed top-0 w-full z-[100] py-4 px-6 md:px-16 flex justify-between items-center bg-black/90 backdrop-blur-xl border-b border-white/5">
-        <a href="#" @click="selectedMovie = null" class="text-3xl font-black text-red-600 tracking-tighter uppercase italic">MOOD<span class="text-white">FLIX</span></a>
-        
-        <div class="flex items-center gap-8">
-            <input type="text" x-model="searchQuery" @input.debounce.500ms="searchMovies()" placeholder="Search..." class="bg-white/5 border border-white/10 w-40 md:w-64 py-2 px-6 rounded-full text-xs outline-none focus:border-red-600 transition-all">
-            
-            <div class="hanging-wa">
-                <a href="https://wa.me/250793408967" target="_blank" class="wa-btn shadow-lg shadow-green-500/40">
-                    <i class="fab fa-whatsapp text-white text-xl"></i>
-                </a>
+    <!-- NAV -->
+    <nav class="fixed top-0 w-full z-[100] py-3 px-4 sm:px-6 md:px-16 flex items-center justify-between bg-black/95 backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <a href="#" @click.prevent="selectedMovie = null" class="text-2xl sm:text-3xl font-black text-red-600 tracking-tighter uppercase italic">MOOD<span class="text-white">FLIX</span></a>
+            <!-- small screen search toggle -->
+            <button @click="showSearch = !showSearch" class="sm:hidden text-white/60 p-2 rounded-md focus:outline-none">
+                <i :class="showSearch ? 'fas fa-times' : 'fas fa-search'"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 flex items-center justify-end gap-4">
+            <!-- search (full on sm+, toggle on xs) -->
+            <div class="w-full max-w-xs sm:max-w-md md:max-w-lg">
+                <input x-show="showSearch || $screen('min','sm')" x-cloak
+                       type="text" x-model="searchQuery" @input.debounce.500ms="searchMovies()"
+                       placeholder="Search for movies, e.g. Inception..."
+                       class="w-full bg-white/5 border border-white/10 py-2 px-4 sm:px-6 rounded-full text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-red-600 transition" />
+            </div>
+
+            <!-- contact / actions -->
+            <div class="hidden sm:flex items-center gap-4">
+                <div class="hanging-wa">
+                    <a href="https://wa.me/250793408967" target="_blank" class="wa-btn shadow-lg shadow-green-500/30" aria-label="Contact us on WhatsApp">
+                        <i class="fab fa-whatsapp text-white text-lg"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
+    <!-- HERO / MAIN -->
     <template x-if="!selectedMovie">
-        <main>
-            <header class="relative h-screen w-full">
+        <main class="pt-20">
+            <header class="relative w-full">
                 <template x-for="(m, index) in trendingMovies.slice(0, 5)" :key="m.id">
-                    <div x-show="activeSlide === index" x-transition.opacity.duration.1000ms class="absolute inset-0">
-                        <img :src="'https://image.tmdb.org/t/p/original' + m.backdrop_path" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 netflix-gradient flex items-center px-6 md:px-16">
-                            <div class="max-w-3xl">
-                                <h1 class="text-5xl md:text-8xl font-black mb-4 uppercase italic tracking-tighter" x-text="m.title"></h1>
-                                <p class="text-white/80 font-bold mb-4 uppercase text-xs" x-text="'Released: ' + m.release_date"></p>
-                                <button @click="openDetails(m)" class="bg-red-600 text-white px-12 py-4 rounded-full font-black uppercase text-xs hover:bg-white hover:text-black transition-all">Watch Now</button>
+                    <div x-show="activeSlide === index" x-transition.opacity.duration.900ms class="relative">
+                        <div class="w-full h-[55vh] sm:h-[65vh] md:h-screen relative overflow-hidden">
+                            <img :src="m.backdrop_path ? 'https://image.tmdb.org/t/p/original' + m.backdrop_path : ''" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 netflix-gradient flex items-center px-6 md:px-16">
+                                <div class="max-w-3xl">
+                                    <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-black mb-3 uppercase italic tracking-tight" x-text="m.title"></h1>
+                                    <p class="text-white/80 font-bold mb-4 uppercase text-xs sm:text-sm" x-text="'Released: ' + (m.release_date || 'N/A')"></p>
+                                    <div class="flex items-center gap-3">
+                                        <button @click="openDetails(m)" class="bg-red-600 text-white px-6 py-2 sm:px-10 sm:py-3 rounded-full font-black uppercase text-xs hover:bg-white hover:text-black transition-all">Watch Now</button>
+                                        <button @click="addToWatchlist?.(m)" class="bg-white/5 text-white px-4 py-2 rounded-full text-xs hidden sm:inline">+ Watchlist</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </template>
             </header>
 
-            <div class="mt-[-120px] relative z-20 pb-40 space-y-16">
+            <!-- CONTENT ROWS -->
+            <div class="mt-8 md:mt-[-120px] relative z-20 pb-28 space-y-12 px-2 sm:px-6 md:px-16">
                 <template x-for="genre in genreList" :key="genre.id">
-                    <div class="pl-6 md:pl-16">
-                        <h2 class="text-2xl font-black mb-6 text-white uppercase italic border-l-4 border-red-600 pl-4 tracking-widest" x-text="genre.name"></h2>
-                        <div class="flex gap-5 overflow-x-auto row-container" x-init="fetchGenreMovies(genre.id, genre.name)">
-                            <template x-for="movie in genreData[genre.name]" :key="movie.id">
-                                <div class="movie-card flex-none w-[200px] shining-card group cursor-pointer" @click="openDetails(movie)">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black mb-4 text-white uppercase italic border-l-4 border-red-600 pl-4 tracking-widest" x-text="genre.name"></h2>
+                        <div class="flex gap-4 overflow-x-auto row-container py-2">
+                            <template x-for="movie in (genreData[genre.name] || [])" :key="movie.id">
+                                <div class="movie-card row-item flex-none w-40 sm:w-[200px] shining-card group cursor-pointer" @click="openDetails(movie)">
                                     <div class="relative">
-                                        <img :src="'https://image.tmdb.org/t/p/w400' + movie.poster_path" class="rounded-xl">
+                                        <img :src="movie.poster_path ? 'https://image.tmdb.org/t/p/w400' + movie.poster_path : ''" class="rounded-xl w-full h-[300px] sm:h-[280px] object-cover">
                                         <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-xl">
                                             <div class="bg-red-600 text-white px-4 py-2 rounded-full font-black text-[10px] uppercase">Watch Now</div>
                                         </div>
                                     </div>
-                                    <p class="mt-3 text-[10px] font-black uppercase truncate text-white/50 px-2" x-text="movie.title"></p>
+                                    <p class="mt-3 text-[11px] sm:text-[12px] font-black uppercase truncate text-white/70 px-1" x-text="movie.title"></p>
                                 </div>
+                            </template>
+                            <!-- fallback when loading or empty -->
+                            <template x-if="!(genreData[genre.name] && genreData[genre.name].length)">
+                                <div class="text-white/40 italic p-4">Loading...</div>
                             </template>
                         </div>
                     </div>
@@ -89,105 +123,160 @@
         </main>
     </template>
 
+    <!-- MOVIE DETAILS -->
     <template x-if="selectedMovie">
         <div class="min-h-screen bg-[#050505] animate-fade-in">
-            <div class="relative h-[65vh]">
-                <img :src="'https://image.tmdb.org/t/p/original' + selectedMovie.backdrop_path" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/40 to-transparent"></div>
-                <div class="absolute inset-0 flex items-end px-6 md:px-16 pb-12">
-                    <div class="max-w-4xl">
-                        <button @click="selectedMovie = null" class="mb-8 bg-red-600 text-white px-8 py-3 rounded-full font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-105 transition">
-                            <i class="fas fa-arrow-left mr-2"></i> BACK TO HOME
-                        </button>
-                        <h1 class="text-6xl md:text-8xl font-black mb-4 uppercase italic tracking-tighter" x-text="selectedMovie.title"></h1>
-                        <p class="text-red-500 font-black mb-6 uppercase text-sm" x-text="'OFFICIAL RELEASE: ' + selectedMovie.release_date"></p>
-                        <p class="text-white/70 text-lg leading-relaxed max-w-2xl" x-text="selectedMovie.overview"></p>
+            <div class="relative">
+                <div class="w-full h-[45vh] sm:h-[55vh] md:h-[65vh] relative overflow-hidden">
+                    <img :src="selectedMovie.backdrop_path ? 'https://image.tmdb.org/t/p/original' + selectedMovie.backdrop_path : ''" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-black/40 to-transparent"></div>
+                    <div class="absolute inset-0 flex items-end px-6 md:px-16 pb-8">
+                        <div class="max-w-4xl">
+                            <button @click="selectedMovie = null" class="mb-4 bg-red-600 text-white px-4 sm:px-8 py-2 rounded-full font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-105 transition">
+                                <i class="fas fa-arrow-left mr-2"></i> BACK TO HOME
+                            </button>
+                            <h1 class="text-2xl sm:text-4xl md:text-6xl font-black mb-2 uppercase italic tracking-tight" x-text="selectedMovie.title"></h1>
+                            <p class="text-red-500 font-black mb-4 uppercase text-xs sm:text-sm" x-text="'OFFICIAL RELEASE: ' + (selectedMovie.release_date || 'N/A')"></p>
+                            <p class="text-white/70 text-sm sm:text-base leading-relaxed max-w-2xl" x-text="selectedMovie.overview"></p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="px-4 md:px-16 py-20">
-                <div class="relative w-full max-w-6xl mx-auto aspect-video rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl">
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/5 font-black text-5xl uppercase pointer-events-none z-10 tracking-[15px]">ISB</div>
-                    <iframe :src="'https://vidsrc.icu/embed/movie/' + selectedMovie.id" class="w-full h-full" allowfullscreen allow="autoplay"></iframe>
+            <!-- responsive video embed -->
+            <div class="px-4 md:px-16 py-8">
+                <div class="relative w-full max-w-6xl mx-auto rounded-3xl overflow-hidden bg-black border border-white/10 shadow-2xl">
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="text-white/5 font-black text-4xl sm:text-5xl uppercase z-10 tracking-[12px]">ISB</div>
+                    </div>
+                    <!-- responsive aspect ratio wrapper -->
+                    <div class="relative" style="padding-top:56.25%;">
+                        <iframe :src="'https://vidsrc.icu/embed/movie/' + selectedMovie.id" class="absolute inset-0 w-full h-full" allowfullscreen allow="autoplay"></iframe>
+                    </div>
                 </div>
             </div>
 
-            <div class="max-w-4xl mx-auto px-6 pb-40">
-                <h3 class="text-3xl font-black uppercase mb-10 border-l-8 border-red-600 pl-6 italic">Audience Reviews</h3>
-                <div class="space-y-4 mb-12">
-                    <input type="text" x-model="newCommentName" placeholder="Your Name" class="w-full bg-white/5 border border-white/10 p-5 rounded-xl outline-none focus:border-red-600 transition">
-                    <textarea x-model="newCommentText" placeholder="Write a review..." class="w-full bg-white/5 border border-white/10 p-5 rounded-xl h-32 outline-none focus:border-red-600 transition"></textarea>
-                    <button @click="addComment()" class="bg-red-600 px-12 py-4 rounded-full font-black uppercase text-xs">Post Review</button>
+            <!-- comments -->
+            <div class="max-w-4xl mx-auto px-6 pb-28">
+                <h3 class="text-2xl sm:text-3xl font-black uppercase mb-6 border-l-8 border-red-600 pl-4 italic">Audience Reviews</h3>
+                <div class="space-y-4 mb-6">
+                    <input type="text" x-model="newCommentName" placeholder="Your Name" class="w-full bg-white/5 border border-white/10 p-3 sm:p-4 rounded-xl outline-none focus:border-red-600 transition text-sm sm:text-base">
+                    <textarea x-model="newCommentText" placeholder="Write a review..." class="w-full bg-white/5 border border-white/10 p-3 sm:p-4 rounded-xl h-28 outline-none focus:border-red-600 transition text-sm sm:text-base"></textarea>
+                    <div class="flex gap-3">
+                        <button @click="addComment()" class="bg-red-600 px-6 py-2 rounded-full font-black uppercase text-xs sm:text-sm">Post Review</button>
+                        <button @click="submitFeedback?.()" class="bg-white/5 px-4 py-2 rounded-full text-xs hidden sm:inline">Report</button>
+                    </div>
                 </div>
+
                 <div class="space-y-6">
                     <template x-for="comment in comments.filter(c => c.movieId === selectedMovie.id)" :key="comment.id">
-                        <div class="bg-white/5 p-8 rounded-2xl border border-white/5">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center font-black" x-text="comment.name[0]"></div>
+                        <div class="bg-white/5 p-4 sm:p-6 rounded-2xl border border-white/5">
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center font-black" x-text="comment.name[0]"></div>
                                 <p class="font-black uppercase tracking-widest text-sm" x-text="comment.name"></p>
                             </div>
-                            <p class="text-white/60 italic" x-text="comment.text"></p>
+                            <p class="text-white/60 italic text-sm" x-text="comment.text"></p>
                         </div>
+                    </template>
+                    <template x-if="!comments.filter(c => c.movieId === selectedMovie.id).length">
+                        <p class="text-white/40 italic">No reviews yet — be the first to comment!</p>
                     </template>
                 </div>
             </div>
         </div>
     </template>
 
-    <footer class="py-20 px-6 border-t border-white/5 bg-black text-center md:text-left">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-20">
+    <!-- floating WhatsApp button for mobile -->
+    <a href="https://wa.me/250793408967" target="_blank" class="sm:hidden fixed bottom-6 right-4 z-50 bg-green-500 w-14 h-14 rounded-full flex items-center justify-center text-white text-2xl shadow-xl" aria-label="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- FOOTER -->
+    <footer class="py-12 px-6 border-t border-white/5 bg-black text-center md:text-left">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-                <h4 class="text-red-600 font-black text-3xl mb-6 italic">MOODFLIX</h4>
-                <p class="text-white/20 text-[10px] font-bold uppercase tracking-[0.4em]">Bruno Shema (ISB) &bull; Premium Cinema Engine &bull; 2025</p>
+                <h4 class="text-red-600 font-black text-2xl mb-3 italic">MOODFLIX</h4>
+                <p class="text-white/20 text-[11px] font-bold uppercase tracking-[0.28em]">Bruno Shema (ISB) • Premium Cinema Engine • 2025</p>
             </div>
-            <div class="space-y-4">
-                <h4 class="text-white font-black text-xs uppercase mb-6 tracking-widest">Contact ISB</h4>
+            <div class="space-y-2">
+                <h4 class="text-white font-black text-xs uppercase mb-2 tracking-widest">Contact ISB</h4>
                 <p class="text-white/40 text-xs font-black">+250 793 408 967</p>
                 <p class="text-white/40 text-xs font-black italic">shemabruno98@gmail.com</p>
             </div>
-            <div class="flex justify-center md:justify-start gap-8">
-                <a href="https://wa.me/250793408967" class="text-white/20 hover:text-green-500 text-4xl transition"><i class="fab fa-whatsapp"></i></a>
-                <a href="https://www.facebook.com/profile.php?id=100050118310189" class="text-white/20 hover:text-blue-600 text-4xl transition"><i class="fab fa-facebook"></i></a>
+            <div class="flex justify-center md:justify-start gap-6">
+                <a href="https://wa.me/250793408967" class="text-white/20 hover:text-green-500 text-3xl transition"><i class="fab fa-whatsapp"></i></a>
+                <a href="https://www.facebook.com/profile.php?id=100050118310189" class="text-white/20 hover:text-blue-600 text-3xl transition"><i class="fab fa-facebook"></i></a>
             </div>
         </div>
     </footer>
 
+    <!-- APP LOGIC -->
     <script>
         function moodFlixApp() {
             return {
                 apiKey: 'bea98ba7f32df298de59174a7d56a818',
-                trendingMovies: [], genreData: {}, activeSlide: 0, 
+                trendingMovies: [], genreData: {}, activeSlide: 0,
                 selectedMovie: null, searchQuery: '',
                 newCommentName: '', newCommentText: '', comments: [],
+                showSearch: false,
                 genreList: [
                     { id: '28', name: 'Action Masterpieces' },
                     { id: '27', name: 'Horror Room' },
                     { id: '16', name: 'Animation Universe' },
                     { id: '878', name: 'Sci-Fi Future' }
                 ],
-                init() { 
+                init() {
                     this.fetchTrending();
-                    setInterval(() => { if(!this.selectedMovie) this.activeSlide = (this.activeSlide + 1) % 5; }, 6000);
+                    // prefetch genres on load
+                    this.genreList.forEach(g => this.fetchGenreMovies(g.id, g.name));
+                    // auto slide
+                    setInterval(() => { if(!this.selectedMovie) this.activeSlide = (this.activeSlide + 1) % Math.max(1, (this.trendingMovies.slice(0,5).length || 5)); }, 6000);
                 },
                 async fetchTrending() {
-                    const res = await fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${this.apiKey}`);
-                    const data = await res.json(); this.trendingMovies = data.results;
+                    try {
+                        const res = await fetch(`https://api.themoviedb.org/3/movie/popular?api_key=${this.apiKey}`);
+                        const data = await res.json();
+                        this.trendingMovies = data.results || [];
+                    } catch (e) {
+                        console.error('Failed to fetch trending', e);
+                    }
                 },
                 async fetchGenreMovies(id, name) {
-                    const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${this.apiKey}&with_genres=${id}`);
-                    const data = await res.json(); this.genreData[name] = data.results;
+                    try {
+                        const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${this.apiKey}&with_genres=${id}`);
+                        const data = await res.json();
+                        this.$set(this.genreData, name, data.results || []);
+                    } catch (e) {
+                        console.error('Failed to fetch genre', e);
+                        this.$set(this.genreData, name, []);
+                    }
                 },
                 async searchMovies() {
-                    if(this.searchQuery.length < 2) return;
-                    const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(this.searchQuery)}`);
-                    const data = await res.json(); this.genreData['Action Masterpieces'] = data.results;
+                    if(this.searchQuery.length < 2) {
+                        // restore or clear search bucket
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${this.apiKey}&query=${encodeURIComponent(this.searchQuery)}`);
+                        const data = await res.json();
+                        // put search results into a special list so UI can show them in first genre slot
+                        this.$set(this.genreData, 'Search Results', data.results || []);
+                        if(!this.genreList.some(g => g.name === 'Search Results')) {
+                            this.genreList.unshift({ id: 'search', name: 'Search Results' });
+                        }
+                    } catch(e) {
+                        console.error('Search failed', e);
+                    }
                 },
                 openDetails(movie) {
-                    this.selectedMovie = movie; window.scrollTo({top: 0, behavior: 'smooth'});
+                    this.selectedMovie = movie;
+                    // ensure comments array exists for this movie (optional)
+                    window.scrollTo({top: 0, behavior: 'smooth'});
+                    // hide mobile search if open
+                    this.showSearch = false;
                 },
                 addComment() {
-                    if(!this.newCommentName || !this.newCommentText) return;
+                    if(!this.newCommentName || !this.newCommentText || !this.selectedMovie) return;
                     this.comments.unshift({
                         id: Date.now(), movieId: this.selectedMovie.id,
                         name: this.newCommentName, text: this.newCommentText
